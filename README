@@ -1,0 +1,5 @@
+Configure virtual machine on Gandi IaaS hosting platform.
+Each cold start of a virtual machine, shell script in the system image look
+for kernel module tarball and a python script in the swap space.
+
+The python code is swap_init.py.
