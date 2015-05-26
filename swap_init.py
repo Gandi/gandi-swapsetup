@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # First boot configuration for Gandi IaaS virtual machine
 
