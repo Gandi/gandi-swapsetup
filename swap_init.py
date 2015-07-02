@@ -81,13 +81,9 @@ def add_user(user):
 
 @ifon('FreeBSD')
 def add_user(user):
-    p = subprocess.Popen(
-        ['adduser', '-G', _admin_group(), '-f', '-'],
-        stdin=subprocess.PIPE
-    )
-    p.communicate('%s::::::%s (Auto-created)::/bin/csh:*\n' % (user, user,))
-    return p.return_code
-
+    return subprocess.Popen(
+        ['pw', 'adduser', user, '-G', _admin_group(), '-m']
+    ).wait()
 
 # Password functions
 @ifon('Linux')
