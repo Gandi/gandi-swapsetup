@@ -332,6 +332,16 @@ def network_setup(hostname, vif_list):
     network_disable_dhcp(eth_list, default_file)
     hostname_setup(conf['vm_hostname'])
 
+@ifon('FreeBSD')
+def network_setup(hostname, vif_list):
+    eth_list = []
+    for num, vif, in enumerate_ips(vif_list):
+        if not os.path.exists("/etc/rc.conf.d/netif"):
+            os.mkdir("/etc/rc.conf.d/netif")
+        elif not os.path.isdir("/etc/rc.conf.d/netif"):
+            os.unlink("/etc/rc.conf.d/netif")
+            os.mkdir("/etc/rc.conf.d/netif")
+
 
 @ifon('Debian')
 def network_enable(vif_list):
@@ -374,6 +384,14 @@ def network_enable(vif_list):
                       'eth0', 'up']).wait()
     subprocess.Popen(['/usr/bin/systemctl', 'restart', 'sshd']).wait()
 
+@ifon('FreeBSD')
+def network_enable(vif_list):
+    """ Activate network interface after configuration.
+    """
+    for num, vif in enumerate_ips(vif_list):
+        subprocess.Popen(['/usr/sbin/service', 'netif', 'restart', vif]).wait()
+    subprocess.Popen(['/usr/sbin/service', 'sshd', 'restart']).wait()
+
 
 @ifon('Linux')
 def get_number_cpu():
@@ -412,6 +430,7 @@ def network_virtio(vif_list):
             subprocess.Popen(cmd).wait()
 
 
+@ifon('Linux')
 def hostname_setup(hostname):
     """Hostname and mailname configuration process mainly for Debian/Ubuntu
        and ArchLinux distribution. CentOS/RedHat is using hostname
@@ -423,6 +442,15 @@ def hostname_setup(hostname):
             for elt in 'hostname', 'mailname':
                 file('/etc/%s' % elt, 'w').write('%s\n' % hostname)
             subprocess.Popen(['/bin/hostname', hostname]).wait()
+
+@ifon('FreeBSD')
+def hostname_setup(hostname):
+    for entry in file(default_file).readlines():
+        if entry.startswith('CONFIG_HOSTNAME=1') or \
+           entry.startswith('CONFIG_HOSTNAME = 1'):
+            file('/etc/rc.conf.d/hostname', 'w').write("hostname=\"%s\"\n" % hostname)
+            subprocess.Popen(['/bin/hostname', hostname]).wait()
+            subprocess.Popen(['service', 'hostname', 'restart']).wait()
 
 
 def add_host(hostname, addr):
