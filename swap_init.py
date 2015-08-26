@@ -460,8 +460,11 @@ if __name__ == '__main__':
     opts, args = getopt.getopt(sys.argv[1:], 'p', ["postboot"])
     for o, a in opts:
         if o in ("-p", "--postboot"):
-            if os.path.exists('/gandi/script'):
-                subprocess.Popen(['/gandi/script']).wait()
+            script = '/gandi/script'
+            if os.path.exists(script):
+                if extra.get('script_args'):
+                    script = '{} {}'.format(script, extra['script_args'])
+                subprocess.Popen(script, shell=True).wait()
             if extra.get('run'):
                 subprocess.Popen(['sh', '-c', extra['run']]).wait()
             sys.exit(0)
