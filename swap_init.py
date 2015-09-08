@@ -337,11 +337,24 @@ def network_setup(hostname, vif_list):
 def network_setup(hostname, vif_list):
     eth_list = []
     for num, vif, in enumerate_ips(vif_list):
-        if not os.path.exists("/etc/rc.conf.d/netif"):
-            os.mkdir("/etc/rc.conf.d/netif")
-        elif not os.path.isdir("/etc/rc.conf.d/netif"):
-            os.unlink("/etc/rc.conf.d/netif")
-            os.mkdir("/etc/rc.conf.d/netif")
+        if not os.path.exists("/etc/rc.conf.d/network"):
+            os.mkdir("/etc/rc.conf.d/network")
+        elif not os.path.isdir("/etc/rc.conf.d/network"):
+            os.unlink("/etc/rc.conf.d/network")
+            os.mkdir("/etc/rc.conf.d/network")
+        cfile = file('/etc/rc.conf.d/network/vtnet%d' % num, 'w')
+        cfile.write(
+                'ifconfig_vtnet%d="inet %s netmask %s"\n' % (num,
+                                                             vif['address'],
+                                                            _netmask4(vif['network']))
+                )
+        if num == 0:
+            if vif.get('gateway'):
+                cfile = file('/etc/rc.conf.d/routing', 'w')
+                cfile.write('defaultrouter=%s\n' % vif['gateway'])
+            add_host(hostname, vid['address'])
+
+    hostname_setup(conf['vm_hostname'])
 
 
 @ifon('Debian')
