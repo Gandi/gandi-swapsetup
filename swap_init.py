@@ -352,7 +352,7 @@ def network_setup(hostname, vif_list):
             if vif.get('gateway'):
                 cfile = file('/etc/rc.conf.d/routing', 'w')
                 cfile.write('defaultrouter=%s\n' % vif['gateway'])
-            add_host(hostname, vid['address'])
+            add_host(hostname, vif['address'])
 
     hostname_setup(conf['vm_hostname'])
 
@@ -402,9 +402,8 @@ def network_enable(vif_list):
 def network_enable(vif_list):
     """ Activate network interface after configuration.
     """
-    for num, vif in enumerate_ips(vif_list):
-        subprocess.Popen(['/usr/sbin/service', 'netif', 'restart', vif]).wait()
-    subprocess.Popen(['/usr/sbin/service', 'sshd', 'restart']).wait()
+    subprocess.Popen(['/usr/sbin/service', 'netif', 'restart']).wait()
+    subprocess.Popen(['/usr/sbin/service', 'routing', 'restart']).wait()
 
 
 @ifon('Linux')
