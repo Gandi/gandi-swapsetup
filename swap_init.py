@@ -34,8 +34,9 @@ if os.path.exists('/etc/SuSE-release'):
 default_file = '/etc/default/gandi'
 if not os.path.exists(default_file):
     default_file = '/etc/sysconfig/gandi'
-if not os.path.exists(default_file):
-    default_file = '/usr/local/etc/gandi/vm_config'
+
+if this_os_names[0] == "FreeBSD":
+    default_file = '/etc/rc.conf.d/gandi'
 
 _fndict = {}
 
