@@ -458,6 +458,9 @@ def hostname_setup(hostname):
 
 @ifon('FreeBSD')
 def hostname_setup(hostname):
+    """Hostname configuration for FreeBSD
+       Here we prefer /etc/rc.conf.d/hostname over /etc/rc.conf
+    """
     for entry in file(default_file).readlines():
         if entry.startswith('CONFIG_HOSTNAME=1') or \
            entry.startswith('CONFIG_HOSTNAME = 1'):
