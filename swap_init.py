@@ -335,6 +335,11 @@ def network_setup(hostname, vif_list):
 
 @ifon('FreeBSD')
 def network_setup(hostname, vif_list):
+    """Setup network for FreeBSD:
+       Do all configurations a directory /etc/rc.conf.d/network
+       Add one file per vif containing the configuration
+       Configure the gateway in /etc/rc.conf.d/routing
+   """
     eth_list = []
     for num, vif, in enumerate_ips(vif_list):
         if not os.path.exists("/etc/rc.conf.d/network"):
