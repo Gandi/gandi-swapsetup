@@ -34,8 +34,9 @@ if os.path.exists('/etc/SuSE-release'):
 default_file = '/etc/default/gandi'
 if not os.path.exists(default_file):
     default_file = '/etc/sysconfig/gandi'
-if not os.path.exists(default_file):
-    default_file = '/usr/local/etc/gandi/vm_config'
+
+if this_os_names[0] == "FreeBSD":
+    default_file = '/etc/rc.conf.d/gandi'
 
 _fndict = {}
 
@@ -81,13 +82,9 @@ def add_user(user):
 
 @ifon('FreeBSD')
 def add_user(user):
-    p = subprocess.Popen(
-        ['adduser', '-G', _admin_group(), '-f', '-'],
-        stdin=subprocess.PIPE
-    )
-    p.communicate('%s::::::%s (Auto-created)::/bin/csh:*\n' % (user, user,))
-    return p.return_code
-
+    return subprocess.Popen(
+        ['pw', 'adduser', user, '-G', _admin_group(), '-m']
+    ).wait()
 
 # Password functions
 @ifon('Linux')
@@ -336,6 +333,34 @@ def network_setup(hostname, vif_list):
     network_disable_dhcp(eth_list, default_file)
     hostname_setup(conf['vm_hostname'])
 
+@ifon('FreeBSD')
+def network_setup(hostname, vif_list):
+    """Setup network for FreeBSD:
+       Do all configurations a directory /etc/rc.conf.d/network
+       Add one file per vif containing the configuration
+       Configure the gateway in /etc/rc.conf.d/routing
+   """
+    eth_list = []
+    for num, vif, in enumerate_ips(vif_list):
+        if not os.path.exists("/etc/rc.conf.d/network"):
+            os.mkdir("/etc/rc.conf.d/network")
+        elif not os.path.isdir("/etc/rc.conf.d/network"):
+            os.unlink("/etc/rc.conf.d/network")
+            os.mkdir("/etc/rc.conf.d/network")
+        cfile = file('/etc/rc.conf.d/network/vtnet%d' % num, 'w')
+        cfile.write(
+                'ifconfig_vtnet%d="inet %s netmask %s"\n' % (num,
+                                                             vif['address'],
+                                                            _netmask4(vif['network']))
+                )
+        if num == 0:
+            if vif.get('gateway'):
+                cfile = file('/etc/rc.conf.d/routing', 'w')
+                cfile.write('defaultrouter=%s\n' % vif['gateway'])
+            add_host(hostname, vif['address'])
+
+    hostname_setup(conf['vm_hostname'])
+
 
 @ifon('Debian')
 def network_enable(vif_list):
@@ -378,6 +403,13 @@ def network_enable(vif_list):
                       'eth0', 'up']).wait()
     subprocess.Popen(['/usr/bin/systemctl', 'restart', 'sshd']).wait()
 
+@ifon('FreeBSD')
+def network_enable(vif_list):
+    """ Activate network interface after configuration.
+    """
+    subprocess.Popen(['/usr/sbin/service', 'netif', 'restart']).wait()
+    subprocess.Popen(['/usr/sbin/service', 'routing', 'restart']).wait()
+
 
 @ifon('Linux')
 def get_number_cpu():
@@ -416,6 +448,7 @@ def network_virtio(vif_list):
             subprocess.Popen(cmd).wait()
 
 
+@ifon('Linux')
 def hostname_setup(hostname):
     """Hostname and mailname configuration process mainly for Debian/Ubuntu
        and ArchLinux distribution. CentOS/RedHat is using hostname
@@ -427,6 +460,18 @@ def hostname_setup(hostname):
             for elt in 'hostname', 'mailname':
                 file('/etc/%s' % elt, 'w').write('%s\n' % hostname)
             subprocess.Popen(['/bin/hostname', hostname]).wait()
+
+@ifon('FreeBSD')
+def hostname_setup(hostname):
+    """Hostname configuration for FreeBSD
+       Here we prefer /etc/rc.conf.d/hostname over /etc/rc.conf
+    """
+    for entry in file(default_file).readlines():
+        if entry.startswith('CONFIG_HOSTNAME=1') or \
+           entry.startswith('CONFIG_HOSTNAME = 1'):
+            file('/etc/rc.conf.d/hostname', 'w').write("hostname=\"%s\"\n" % hostname)
+            subprocess.Popen(['/bin/hostname', hostname]).wait()
+            subprocess.Popen(['service', 'hostname', 'restart']).wait()
 
 
 def add_host(hostname, addr):
