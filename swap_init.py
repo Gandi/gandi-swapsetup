@@ -353,6 +353,7 @@ def network_setup(hostname, vif_list):
                                                              vif['address'],
                                                             _netmask4(vif['network']))
                 )
+        cfile.write('ifconfig_venet%d_ipv6="inet6 accept_rtadv"\n' % (num))
         if num == 0:
             if vif.get('gateway'):
                 cfile = file('/etc/rc.conf.d/routing', 'w')
