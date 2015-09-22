@@ -86,6 +86,7 @@ def add_user(user):
         ['pw', 'adduser', user, '-G', _admin_group(), '-m']
     ).wait()
 
+
 # Password functions
 @ifon('Linux')
 def set_password(user, passwd):
@@ -333,6 +334,7 @@ def network_setup(hostname, vif_list):
     network_disable_dhcp(eth_list, default_file)
     hostname_setup(conf['vm_hostname'])
 
+
 @ifon('FreeBSD')
 def network_setup(hostname, vif_list):
     """Setup network for FreeBSD:
@@ -411,6 +413,7 @@ def network_enable(vif_list):
                       'eth0', 'up']).wait()
     subprocess.Popen(['/usr/bin/systemctl', 'restart', 'sshd']).wait()
 
+
 @ifon('FreeBSD')
 def network_enable(vif_list):
     """ Activate network interface after configuration.
@@ -469,6 +472,7 @@ def hostname_setup(hostname):
                 file('/etc/%s' % elt, 'w').write('%s\n' % hostname)
             subprocess.Popen(['/bin/hostname', hostname]).wait()
 
+
 @ifon('FreeBSD')
 def hostname_setup(hostname):
     """Hostname configuration for FreeBSD
@@ -477,7 +481,8 @@ def hostname_setup(hostname):
     for entry in file(default_file).readlines():
         if entry.startswith('CONFIG_HOSTNAME=1') or \
            entry.startswith('CONFIG_HOSTNAME = 1'):
-            file('/etc/rc.conf.d/hostname', 'w').write("hostname=\"%s\"\n" % hostname)
+            hfile = file('/etc/rc.conf.d/hostname', 'w')
+            hfile.write("hostname=\"%s\"\n" % hostname)
             subprocess.Popen(['/bin/hostname', hostname]).wait()
             subprocess.Popen(['service', 'hostname', 'restart']).wait()
 
