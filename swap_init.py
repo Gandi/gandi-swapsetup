@@ -368,6 +368,8 @@ def network_setup(hostname, vif_list):
             mode = 'a'
         cfile = file('/etc/rc.conf.d/network/vtnet%d' % num, mode)
         cfile.write('ifconfig_vtnet%d_ipv6="inet6 accept_rtadv"\n' % num)
+    cfile = file('/etc/rc.conf.d/network/rtsold', 'w')
+    cfile.write('rtsold_enable="YES"')
 
     hostname_setup(conf['vm_hostname'])
 
@@ -420,6 +422,7 @@ def network_enable(vif_list):
     """
     subprocess.Popen(['/usr/sbin/service', 'netif', 'restart']).wait()
     subprocess.Popen(['/usr/sbin/service', 'routing', 'restart']).wait()
+    subprocess.Popen(['/usr/sbin/service', 'rtsold', 'restart']).wait()
 
 
 @ifon('Linux')
