@@ -19,6 +19,9 @@ import subprocess
 import sys
 import getopt
 import errno
+import re
+from socket import inet_pton, AF_INET
+
 
 this_os_names = [os.uname()[0]]
 if os.path.isdir('/etc/sysconfig/'):
@@ -157,10 +160,17 @@ def _netbits4(cidr):
 
 @ifon('Linux', 'FreeBSD', 'SunOS')
 def resolver_setup(nameservers):
+    valid_nameservers = []
+    if is_ipv6_only():
+        nameservers = [nameserver for nameserver in nameservers
+                       if not valid_ipv4(nameserver)]
+    else:
+        valid_nameservers = nameservers
+
     file('/etc/resolv.conf', 'w').write(
         '%s\n'
         'options timeout:1 attempts:3 rotate\n' %
-        '\n'.join("nameserver %s" % x for x in nameservers)
+        '\n'.join("nameserver %s" % x for x in valid_nameservers)
     )
 
 
@@ -514,6 +524,29 @@ def create_module_dir():
     pass
 
 
+def is_ipv6_only():
+    """ if no network interface has IPv4 configuration """
+    vifs = conf.get('vif', {})
+    for vif in vifs:
+        for elt in vif['pna']:
+            # we also need to know if the IP address is an IPv6 and we check
+            # with both subnet of Gandi (another dirty detection)
+            netw = elt['pbn']['pbn_network'].split('/')[0]
+            if valid_ipv4(elt['pbn']['pbn_gateway']) and \
+               valid_ipv4(netw):
+                return False
+    return True
+
+
+def valid_ipv4(addr):
+    """ is this addr an IPv4 or IPV6 ? """
+    try:
+        inet_pton(AF_INET, addr)
+    except socket.error:
+        return False
+    return True
+
+
 if __name__ == '__main__':
     conf = json.load(file('%s/config' % os.path.dirname(sys.argv[0])))
     extra = conf.get('vm_conf', {})
@@ -532,6 +565,19 @@ if __name__ == '__main__':
 
     create_module_dir()
 
+    if nameserver_setup_check(default_file):
+        nameservers = conf.get('nameservers', [])
+        resolver_setup(nameservers)
+
+    if network_setup_check(default_file):
+        network_setup(conf['vm_hostname'], conf['vif'])
+        network_enable(conf['vif'])
+    try:
+        if os.path.exists('/sys/module/virtio_net'):
+            network_virtio(conf['vif'])
+    except OSError:
+        pass
+
     if extra:
         user_list = ['root']
         if extra.get('user'):
@@ -543,16 +589,3 @@ if __name__ == '__main__':
                 set_password(user, extra['password'])
             if extra.get('ssh_key'):
                 add_ssh_key(user, extra['ssh_key'])
-
-        if nameserver_setup_check(default_file):
-            nameservers = conf.get('nameservers', [])
-            resolver_setup(nameservers)
-
-        if network_setup_check(default_file):
-            network_setup(conf['vm_hostname'], conf['vif'])
-            network_enable(conf['vif'])
-        try:
-            if os.path.exists('/sys/module/virtio_net'):
-                network_virtio(conf['vif'])
-        except OSError:
-            pass
