@@ -21,7 +21,7 @@ import getopt
 import errno
 import random
 import re
-from socket import inet_pton, AF_INET
+import socket
 
 
 this_os_names = [os.uname()[0]]
@@ -186,7 +186,6 @@ def resolver_setup(nameservers):
 
 
 def ip_family(ip):
-    import socket
     try:
         socket.inet_pton(socket.AF_INET, ip)
         return 4
@@ -552,7 +551,7 @@ def is_ipv6_only():
 def valid_ipv4(addr):
     """ is this addr an IPv4 or IPV6 ? """
     try:
-        inet_pton(AF_INET, addr)
+        socket.inet_pton(socket.AF_INET, addr)
     except socket.error:
         return False
     return True
