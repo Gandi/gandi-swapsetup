@@ -19,6 +19,7 @@ import subprocess
 import sys
 import getopt
 import errno
+import random
 import re
 from socket import inet_pton, AF_INET
 
@@ -160,18 +161,28 @@ def _netbits4(cidr):
 
 @ifon('Linux', 'FreeBSD', 'SunOS')
 def resolver_setup(nameservers):
-    valid_nameservers = []
-    if is_ipv6_only():
-        nameservers = [nameserver for nameserver in nameservers
-                       if not valid_ipv4(nameserver)]
-    else:
-        valid_nameservers = nameservers
+    """Writes resolv.conf file.
 
-    file('/etc/resolv.conf', 'w').write(
-        '%s\n'
-        'options timeout:1 attempts:3 rotate\n' %
-        '\n'.join("nameserver %s" % x for x in valid_nameservers)
-    )
+    Uses 3 IPv6 nameservers (if available) for IPv6 only VM.
+    Uses 2 IPv4 and 1 IPv6 nameservers otherwise.
+    """
+    ipv4_ns = [ns for ns in nameservers if valid_ipv4(ns)]
+    ipv6_ns = [ns for ns in nameservers if not valid_ipv4(ns)]
+    valid_ns = []
+    if is_ipv6_only():
+        # Using shuffle instead of sample to avoid error if ipv6_ns have less
+        # than 3 elements
+        random.shuffle(ipv6_ns)
+        valid_ns = ipv6_ns[:3]
+    else:
+        random.shuffle(ipv4_ns)
+        valid_ns = ipv4_ns[:2]
+        if ipv6_ns:
+            valid_ns.append(random.choice(ipv6_ns))
+
+    with open('/etc/resolv.conf', 'w') as f:
+        f.write('\n'.join("nameserver %s" % x for x in valid_ns))
+        f.write('\noptions timeout:1 attempts:3 rotate\n')
 
 
 def ip_family(ip):
