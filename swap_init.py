@@ -539,6 +539,9 @@ def is_ipv6_only():
     vifs = conf.get('vif', {})
     for vif in vifs:
         for elt in vif['pna']:
+            if 'pbn' not in elt:
+                # looks like this is a private iface
+                continue
             # we also need to know if the IP address is an IPv6 and we check
             # with both subnet of Gandi (another dirty detection)
             netw = elt['pbn']['pbn_network'].split('/')[0]
