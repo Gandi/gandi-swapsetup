@@ -13,14 +13,12 @@ if not hasattr(json, 'dumps'):
 
 import grp
 import os
-import posix
 import pwd
 import subprocess
 import sys
 import getopt
 import errno
 import random
-import re
 import socket
 
 
@@ -42,10 +40,13 @@ if not os.path.exists(default_file):
 if this_os_names[0] == "FreeBSD":
     default_file = '/etc/rc.conf.d/gandi'
 
+MAX_CPU = 8
+
 _fndict = {}
 
 
 def debug(fn):
+    """ Add timing for debugging"""
     import time
 
     def _timed_fn(*args):
@@ -58,6 +59,7 @@ def debug(fn):
 
 
 def _notimp(*args):
+    """ Not implemented"""
     return 'not implemented'
 
 
@@ -474,8 +476,8 @@ def network_virtio(vif_list):
     Enable multiqueue for vif in virtio mode
     """
     nb_proc = get_number_cpu()
-    if nb_proc > 8:
-        nb_proc = 8
+    if nb_proc > MAX_CPU:
+        nb_proc = MAX_CPU
     for num, vif in enumerate_ips(vif_list):
         if nb_proc > 1:
             cmd = ['ethtool', '-L', 'eth%d' % num, 'combined', str(nb_proc)]
