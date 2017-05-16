@@ -371,14 +371,16 @@ def network_setup(hostname, vif_list):
         os.unlink('/etc/rc.conf.d/network')
         os.mkdir('/etc/rc.conf.d/network')
     for num, vif in enumerate_ips(vif_list):
-        cfile = file('/etc/rc.conf.d/network/vtnet%d' % num, 'w')
-        cfile.write(
-            'ifconfig_vtnet%d="inet %s netmask %s"\n' % (num,
-                                                         vif['address'],
-                                                         _netmask4(
-                                                             vif['network']
-                                                             )))
-        eth_list.append('vtnet%s' % num)
+        for netif in ["xn", "vtnet"]:
+            cfile = file('/etc/rc.conf.d/network/%s%d' % (netif, num), 'w')
+            cfile.write(
+                'ifconfig_%s%d="inet %s netmask %s"\n' % (netif,
+                                                          num,
+                                                          vif['address'],
+                                                          _netmask4(
+                                                              vif['network']
+                                                          )))
+            eth_list.append('%s%s' % (netif, num))
         if num == 0:
             if vif.get('gateway'):
                 cfile = file('/etc/rc.conf.d/routing', 'w')
@@ -386,10 +388,11 @@ def network_setup(hostname, vif_list):
             add_host(hostname, vif['address'])
     for num, vif in enumerate_ips(vif_list, family=6):
         mode = 'w'
-        if 'vtnet%d' % num in eth_list:
+        if 'xn%d' % num in eth_list or "vtnet%d" % num in eth_list:
             mode = 'a'
-        cfile = file('/etc/rc.conf.d/network/vtnet%d' % num, mode)
-        cfile.write('ifconfig_vtnet%d_ipv6="inet6 accept_rtadv"\n' % num)
+        for netif in ["xn", "vtnet"]:
+            cfile = file('/etc/rc.conf.d/network/%s%d' % (netif, num), mode)
+            cfile.write('ifconfig_%s%d_ipv6="inet6 accept_rtadv"\n' % (netif, num))
     cfile = file('/etc/rc.conf.d/rtsold', 'w')
     cfile.write('rtsold_enable="YES"')
 
