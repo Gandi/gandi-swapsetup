@@ -161,9 +161,8 @@ def _netbits4(cidr):
         return '24'
 
 
-@ifon('Linux', 'FreeBSD', 'SunOS')
-def resolver_setup(nameservers):
-    """Writes resolv.conf file.
+def resolver_gen(nameservers):
+    """Generate a resolv.conf valid content
 
     Uses 3 IPv6 nameservers (if available) for IPv6 only VM.
     Uses 2 IPv4 and 1 IPv6 nameservers otherwise.
@@ -182,9 +181,28 @@ def resolver_setup(nameservers):
         if ipv6_ns:
             valid_ns.append(random.choice(ipv6_ns))
 
-    with open('/etc/resolv.conf', 'w') as f:
-        f.write('\n'.join("nameserver %s" % x for x in valid_ns))
-        f.write('\noptions timeout:1 attempts:3 rotate\n')
+    resolv_data = '\n'.join("nameserver %s" %x for x in valid_ns)
+    resolv_data += '\noptions timeout:1 attempts:3 rotate\n'
+
+    return resolv_data
+
+
+@ifon('Linux', 'SunOS')
+def resolver_setup(nameservers):
+    """Writes resolv.conf file.
+    """
+
+    with open("/etc/resolv.conf", 'w') as f:
+        f.write(resolver_gen(nameservers))
+
+
+@ifon('FreeBSD')
+def resolver_setup(nameservers):
+    """Writes resolv.conf file.
+    """
+
+    p = subprocess.Popen(['/sbin/resolvconf', '-a', 'gandi'], stdin=subprocess.PIPE)
+    p.communicate(input=resolver_gen(nameservers))
 
 
 def ip_family(ip):
