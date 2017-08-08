@@ -194,6 +194,13 @@ def resolver_setup(nameservers):
 
     with open("/etc/resolv.conf", 'w') as f:
         f.write(resolver_gen(nameservers))
+    rconfdir='/etc/resolvconf/resolv.conf.d'
+    if os.path.exists(rconfdir):
+        with open('%s/original' % rconfdir, 'w') as f:
+                f.write(resolver_gen(nameservers))
+    if not os.path.islink('%s/tail' % rconfdir):
+        os.unlink('%s/tail' % rconfdir)
+        os.symlink('%s/original' % rconfdir, '%s/tail' % rconfdir)
 
 
 @ifon('FreeBSD')
