@@ -198,9 +198,10 @@ def resolver_setup(nameservers):
     if os.path.exists(rconfdir):
         with open('%s/original' % rconfdir, 'w') as f:
                 f.write(resolver_gen(nameservers))
-    if not os.path.islink('%s/tail' % rconfdir):
-        os.unlink('%s/tail' % rconfdir)
-        os.symlink('%s/original' % rconfdir, '%s/tail' % rconfdir)
+        rlink = '%s/tail' % rconfdir
+        if os.path.exists(rlink):
+            os.unlink(rlink)
+        os.symlink('%s/original' % rconfdir, rlink)
 
 
 @ifon('FreeBSD')
