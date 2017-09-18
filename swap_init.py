@@ -502,6 +502,7 @@ def get_number_cpu():
         pass
 
 
+@ifon('Linux')
 def network_virtio(vif_list):
     """
     Enable multiqueue for vif in virtio mode
