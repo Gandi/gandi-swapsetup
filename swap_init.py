@@ -328,8 +328,9 @@ def network_setup(hostname, vif_list):
         if vif['address']:
             eth_list.append('eth%s' % num)
 
-    subprocess.Popen(['/bin/hostname', hostname]).wait()
     network_disable_dhcp(eth_list, '/etc/sysconfig/gandi')
+    # Althoug not needed for CentOS 6 and previous, we populate /etc/hostname.
+    hostname_setup(conf['vm_hostname'])
 
 
 @ifon('openSUSE')
@@ -516,8 +517,8 @@ def network_virtio(vif_list):
 @ifon('Linux')
 def hostname_setup(hostname):
     """Hostname and mailname configuration process mainly for Debian/Ubuntu
-       and ArchLinux distribution. CentOS/RedHat is using hostname
-       configuration in the ip config file.
+       and systemd-based distribution. CentOS/RedHat 6 and previous
+       releases were using hostname configuration in the ip config file.
     """
     for entry in file(default_file).readlines():
         if entry.startswith('CONFIG_HOSTNAME=1') or \
