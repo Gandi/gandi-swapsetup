@@ -252,8 +252,8 @@ def network_disable_dhcp(vif_list, default_file):
     new_entries = []
     for entry in entries:
         if entry.startswith('CONFIG_NODHCP'):
-            new_entries.append('CONFIG_NODHCP="%s"\n' % " ".join(i for i
-                               in vif_list))
+            new_entries.append(
+                'CONFIG_NODHCP="%s"\n' % " ".join(i for i in vif_list))
         else:
             new_entries.append(entry)
     file(default_file, 'w').write(''.join(new_entries))
@@ -292,8 +292,8 @@ def network_setup(hostname, vif_list):
                                     num,
                                     vif['address'],
                                     _netmask4(vif['network'])
-                                    )
-                )
+                                   )
+               )
         if num == 0:
             if vif.get('gateway'):
                 f.write('\tgateway %s\n' % vif['gateway'])
@@ -319,7 +319,7 @@ def network_setup(hostname, vif_list):
                         'IPADDR=%s\n'
                         'NETMASK=%s\n' % (num, vif['address'],
                                           _netmask4(vif['network']))
-                        )
+                       )
         if num == 0:
             if vif.get('gateway'):
                 netw.write('GATEWAY=%s\n' % vif.get('gateway'))
@@ -345,7 +345,7 @@ def network_setup(hostname, vif_list):
                         'BOOTPROTO=static\n'
                         'USERCONTROL=yes\n' % (num, vif['address'],
                                                _netmask4(vif['network']))
-                        )
+                       )
         if num == 0:
             if vif.get('gateway'):
                 defaultroute = "default %s 0.0.0.0 eth0\n" % vif.get('gateway')
@@ -371,7 +371,7 @@ def network_setup(hostname, vif_list):
                     'broadcast=%s\n' % (vif['address'],
                                         _netbits4(vif['network']),
                                         vif['gateway'][:-1] + '5')
-                    )
+                   )
 
         if num == 0:
             cfile.write('gateway=%s\n' % vif['gateway'])
