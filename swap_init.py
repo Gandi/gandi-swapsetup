@@ -448,6 +448,7 @@ def network_enable(vif_list):
     subprocess.Popen(['/sbin/ip', 'link', 'set', 'dev',
                       'eth0', 'up']).wait()
     subprocess.Popen(['/usr/sbin/service', 'sshd', 'restart']).wait()
+    subprocess.Popen(['/sbin/chkconfig', 'network', 'on']).wait()
 
 
 @ifon('ArchLinux')
