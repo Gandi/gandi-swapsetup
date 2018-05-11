@@ -521,6 +521,7 @@ def get_number_cpu():
         pass
 
 
+@ifon('Linux')
 def network_virtio(vif_list):
     """
     Enable multiqueue for vif in virtio mode
@@ -635,11 +636,16 @@ if __name__ == '__main__':
         resolver_setup(nameservers)
 
     if network_setup_check(default_file):
-        network_setup(conf['vm_hostname'], conf['vif'])
-        network_enable(conf['vif'])
+        vm_hostname = conf.get('vm_hostname', '')
+        vif = conf.get('vif', [])
+        if vif:
+            network_setup(vm_hostname, vif)
+            network_enable(vif)
     try:
         if os.path.exists('/sys/module/virtio_net'):
-            network_virtio(conf['vif'])
+            vif = conf.get('vif', [])
+            if vif:
+                network_virtio(vif)
     except OSError:
         pass
 
