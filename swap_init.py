@@ -161,11 +161,14 @@ def _netbits4(cidr):
         return '24'
 
 
-def resolver_gen(nameservers):
+def resolver_gen(nameservers, type='regular'):
     """Generate a resolv.conf valid content
 
     Uses 3 IPv6 nameservers (if available) for IPv6 only VM.
     Uses 2 IPv4 and 1 IPv6 nameservers otherwise.
+
+    type: can be regular for /etc/resolv.conf value or
+          dnslist for plain DNS list for systemd-resolved
     """
     ipv4_ns = [ns for ns in nameservers if valid_ipv4(ns)]
     ipv6_ns = [ns for ns in nameservers if not valid_ipv4(ns)]
@@ -181,27 +184,42 @@ def resolver_gen(nameservers):
         if ipv6_ns:
             valid_ns.append(random.choice(ipv6_ns))
 
-    resolv_data = '\n'.join("nameserver %s" %x for x in valid_ns)
-    resolv_data += '\noptions timeout:1 attempts:3 rotate\n'
+    if type == 'regular':
+        resolv_data = '\n'.join("nameserver %s" %x for x in valid_ns)
+        resolv_data += '\noptions timeout:1 attempts:3 rotate\n'
+    else:
+        resolv_data = ' '.join(valid_ns)
 
     return resolv_data
 
 
-@ifon('Linux', 'SunOS')
+@ifon('Linux')
 def resolver_setup(nameservers):
     """Writes resolv.conf file.
     """
 
-    with open("/etc/resolv.conf", 'w') as f:
-        f.write(resolver_gen(nameservers))
+    # regular resolv.conf
+    if not os.path.islink('/etc/resolv.conf'):
+        with open("/etc/resolv.conf", 'w') as f:
+            f.write(resolver_gen(nameservers, 'regular'))
+    # regular resolv.conf for resolvconf tool
     rconfdir='/etc/resolvconf/resolv.conf.d'
     if os.path.exists(rconfdir):
         with open('%s/original' % rconfdir, 'w') as f:
-                f.write(resolver_gen(nameservers))
+                f.write(resolver_gen(nameservers, 'regular'))
         rlink = '%s/tail' % rconfdir
         if os.path.exists(rlink):
             os.unlink(rlink)
         os.symlink('%s/original' % rconfdir, rlink)
+    # systemd-resolved
+    if os.path.exists('/etc/systemd/resolved.conf'):
+        dns_list=resolver_gen(nameservers, 'dnslist')
+        rpath='/etc/systemd/resolved.conf.d'
+        if not os.path.exists(rpath):
+            os.mkdir(rpath, 0o755)
+        with open('%s/gandi.conf' % rpath, 'w') as f:
+            f.write('[Resolve]\nDNS=%s\n' % dns_list)
+        subprocess.Popen(['/usr/sbin/service', 'systemd-resolved', 'restart']).wait()
 
 
 @ifon('FreeBSD')
@@ -210,7 +228,7 @@ def resolver_setup(nameservers):
     """
 
     p = subprocess.Popen(['/sbin/resolvconf', '-a', 'gandi'], stdin=subprocess.PIPE)
-    p.communicate(input=resolver_gen(nameservers))
+    p.communicate(input=resolver_gen(nameservers, 'regular'))
 
 
 def ip_family(ip):
@@ -286,7 +304,7 @@ def network_setup(hostname, vif_list):
     f = file('/etc/network/interfaces', 'w')
     f.write('auto lo\niface lo inet loopback\n')
     for num, vif in enumerate_ips(vif_list):
-        f.write('auto eth%d\niface eth%d inet static\n'
+        f.write('\nauto eth%d\niface eth%d inet static\n'
                 '\taddress %s\n'
                 '\tnetmask %s\n' % (num,
                                     num,
@@ -300,6 +318,7 @@ def network_setup(hostname, vif_list):
             add_host(hostname, vif['address'])
         if vif['address']:
             eth_list.append('eth%s' % num)
+    f.write('\nsource /etc/network/interfaces.d/*\n')
 
     network_disable_dhcp(eth_list, default_file)
     hostname_setup(conf['vm_hostname'])
