@@ -12,6 +12,7 @@ if not hasattr(json, 'dumps'):
     json.loads = json.read
 
 import grp
+import io
 import os
 import pwd
 import subprocess
@@ -120,7 +121,7 @@ def add_ssh_key(user, key):
     authfile = uinfo.pw_dir + '/.ssh/authorized_keys'
 
     if os.path.exists('%s/.ssh/authorized_keys' % uinfo.pw_dir):
-        all_keys = file(authfile).readlines()
+        all_keys = io.open(authfile, encoding='utf-8').readlines()
         if '%s\n' % key in all_keys:
             return
 
@@ -134,7 +135,7 @@ def add_ssh_key(user, key):
             raise
 
     try:
-        file(authfile, 'a').write('%s\n' % key)
+        io.open(authfile, 'a', encoding='utf-8').write('%s\n' % key)
     finally:
         os.seteuid(0)
         os.setegid(0)
